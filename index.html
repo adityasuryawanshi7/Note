@@ -223,10 +223,7 @@
             showNotification('Note deleted successfully!');
         }
 
-        // Truncate long text
-        function truncateText(text, length = 100) {
-            return text.length > length ? text.substring(0, length) + '... [Read More]' : text;
-        }
+        
 
         // Export notes as JSON file
         function exportNotes() {
