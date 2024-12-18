@@ -179,7 +179,7 @@
                 const noteElement = document.createElement('div');
                 noteElement.className = 'note';
                 noteElement.innerHTML = `
-                    <span id="note-${index}">${truncateText(note)}</span>
+                    <span id="note-${index}">${note}</span> <!-- Full text displayed -->
                     <div class="action-btn">
                         <button class="btn delete-btn" onclick="confirmDelete(${index})"></button>
                     </div>
@@ -222,8 +222,6 @@
             loadNotes();
             showNotification('Note deleted successfully!');
         }
-
-        
 
         // Export notes as JSON file
         function exportNotes() {
