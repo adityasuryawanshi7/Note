@@ -43,10 +43,30 @@
         <div class="note-container">
             <h2>Saved Notes:</h2>
             <div id="notesList"></div>
+            
+            
         </div>
+        
+        <div id="reminderSection">
+    <h2>Set Reminder</h2>
+    <div class="form-group">
+        <label for="reminderText">Reminder Text:</label>
+        <input type="text" id="reminderText" placeholder="Type your reminder...">
+    </div>
+    <div class="form-group">
+        <label for="reminderTime">Reminder Time:</label>
+        <input type="datetime-local" id="reminderTime">
+    </div>
+    <button onclick="setReminder()">Set Reminder</button>
+</div>
+        
     </div>
 
+    
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="first.js"></script>
+    
+  
 </body>
 </html>
