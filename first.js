@@ -1,12 +1,3 @@
-if ("Notification" in window) {
-    Notification.requestPermission().then(permission => {
-        if (permission !== "granted") {
-            alert("Enable notifications to use the reminder feature!");
-        }
-    });
-}
-
-
 let currentUser = null;
 
 // Function to display a notification
@@ -208,45 +199,6 @@ document.getElementById('accountsList').addEventListener('click', (event) => {
         loginWithAccount(target.dataset.username);
     }
 });
-
-
-function setReminder() {
-    const reminderText = document.getElementById('reminderText').value.trim();
-    const reminderTime = document.getElementById('reminderTime').value;
-
-    if (!reminderText || !reminderTime) {
-        alert('Please provide both reminder text and time.');
-        return;
-    }
-
-    const reminderTimestamp = new Date(reminderTime).getTime();
-    const now = Date.now();
-
-    if (reminderTimestamp <= now) {
-        alert('Please set a future time for the reminder.');
-        return;
-    }
-
-    setTimeout(() => {
-        showNotification(`Reminder: ${reminderText}`);
-    }, reminderTimestamp - now);
-
-    alert('Reminder set successfully!');
-}
-
-// Example function to show a browser notification (if not already present in your code)
-function showNotification(message) {
-    if (Notification.permission === "granted") {
-        new Notification(message);
-    } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                new Notification(message);
-            }
-        });
-    }
-}
-
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', checkLoginStatus);
