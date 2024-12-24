@@ -51,20 +51,13 @@
             
             <!-- Upload Form for Media -->
             <div class="media-upload-container">
-                <h3>Upload Image</h3>
-                <input type="file" id="uploadImage" accept="image/*">
-                
-                <h3>Upload Audio</h3>
-                <input type="file" id="uploadAudio" accept="audio/*">
-                
-                <h3>Upload File</h3>
-                <input type="file" id="uploadFile">
+                <h3>Upload Images</h3>
+                <input type="file" id="uploadImage" accept="image/*" multiple>
+                <button onclick="uploadImages()">Upload Images</button>
             </div>
 
             <!-- Media Files Display -->
             <div id="imageContainer" class="image-container"></div>
-            <div id="audioContainer" class="audio-container"></div>
-            <div id="fileContainer" class="file-container"></div>
         </div>
     </div>
     

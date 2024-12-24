@@ -1,28 +1,29 @@
 let currentUser = null;
 
-// Function to display a notification
+// Utility function to show notifications
 function showNotification(message) {
     const notification = document.getElementById('notification');
     notification.textContent = message;
     notification.style.opacity = 1;
-    setTimeout(() => (notification.style.opacity = 0), 1000);
+    setTimeout(() => {
+        notification.style.opacity = 0;
+    }, 2000);
 }
 
-// Login function
+// Login functionality
 function login() {
     const username = document.getElementById('usernameInput').value.trim();
     if (!username) {
         alert("Please enter a valid username.");
         return;
     }
-
     currentUser = username;
     saveAccount(username);
     localStorage.setItem('currentUser', currentUser);
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     loadNotes();
-    loadMedia();
+    loadImages();
 }
 
 function logout() {
@@ -34,6 +35,66 @@ function logout() {
     loadAccounts();
 }
 
+// Manage accounts
+function saveAccount(username) {
+    const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+    if (!accounts.includes(username)) {
+        accounts.push(username);
+        localStorage.setItem('accounts', JSON.stringify(accounts));
+    }
+}
+
+// Helper function to log in directly by username
+function loginByUsername(username) {
+    currentUser = username;
+    localStorage.setItem('currentUser', currentUser);
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    loadNotes();
+    loadImages();
+    showNotification(`Logged in as ${username}`);
+}
+
+// Modified loadAccounts function to add click-to-login functionality
+function loadAccounts() {
+    const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+    const accountsList = document.getElementById('accountsList');
+    accountsList.innerHTML = ''; // Clear previous list
+    accounts.forEach((account) => {
+        const li = document.createElement('li');
+        li.textContent = account;
+
+        // Add event listener to log in when username is clicked
+        li.addEventListener('click', () => loginByUsername(account));
+
+        // Add delete button next to each account
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering login on delete click
+            deleteAccount(account);
+        });
+
+        li.appendChild(deleteBtn);
+        accountsList.appendChild(li);
+    });
+}
+
+// Function to delete an account with confirmation
+function deleteAccount(account) {
+    const userConfirmed = confirm(`Are you sure you want to delete the account: ${account}?`);
+    if (userConfirmed) {
+        const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
+        const updatedAccounts = accounts.filter((savedAccount) => savedAccount !== account);
+        localStorage.setItem('accounts', JSON.stringify(updatedAccounts));
+        loadAccounts();
+        console.log(`Account ${account} deleted successfully.`);
+    } else {
+        console.log(`Account ${account} deletion canceled.`);
+    }
+}
+
+// Notes Management
 function loadNotes() {
     if (!currentUser) return;
 
@@ -47,10 +108,10 @@ function loadNotes() {
         noteEl.innerHTML = `
             <span>${note}</span>
             <div class="action-btn">
-                <button class="delete-btn" onclick="confirmDelete(${index})">✗</button>
-                <button class="drag-handle">☰</button>
-            </div>`;
+                <button class="edit-btn" onclick="editNotePrompt(${index})">🖋️</button>
+                <button class="delete-btn" onclick="deleteNotePrompt(${index})">✗</button>`;
         notesList.appendChild(noteEl);
+        enableDrag(noteEl, index);
     });
 }
 
@@ -71,156 +132,125 @@ function saveNote() {
     showNotification("Note saved!");
 }
 
-function confirmDelete(index) {
-    if (confirm("Are you sure you want to delete this note?")) {
-        deleteNote(index);
+function editNotePrompt(index) {
+    const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
+    const newText = prompt("Edit Note:", notes[index]);
+    if (newText !== null) {
+        notes[index] = newText;
+        localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
+        loadNotes();
+        showNotification("Note edited!");
     }
 }
 
-function deleteNote(index) {
+function deleteNotePrompt(index) {
+    if (confirm("Are you sure you want to delete this note?")) {
+        const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
+        notes.splice(index, 1);
+        localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
+        loadNotes();
+        showNotification("Note deleted!");
+    }
+}
+
+/*Drag-and-Drop Functionality
+function enableDrag(noteEl, index) {
+    noteEl.setAttribute("draggable", true);
+    noteEl.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", index);
+    });
+
+    noteEl.addEventListener("dragover", (e) => e.preventDefault());
+
+    noteEl.addEventListener("drop", (e) => {
+        const draggedIndex = e.dataTransfer.getData("text/plain");
+        reorderNotes(draggedIndex, index);
+    });
+}
+
+function reorderNotes(draggedIndex, targetIndex) {
     const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
-    notes.splice(index, 1);
+    const [draggedNote] = notes.splice(draggedIndex, 1);
+    notes.splice(targetIndex, 0, draggedNote);
     localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
     loadNotes();
-    showNotification("Note deleted!");
+}*/
+
+// Export and Import Notes
+function exportNotes() {
+    const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
+    const blob = new Blob([JSON.stringify(notes)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `notes_${currentUser}.json`;
+    a.click();
 }
 
-// Load Media for current user
-function loadMedia() {
-    if (!currentUser) return;
-
-    const imageContainer = document.getElementById('imageContainer');
-    const audioContainer = document.getElementById('audioContainer');
-    const fileContainer = document.getElementById('fileContainer');
-
-    // Load images from localStorage
-    const images = JSON.parse(localStorage.getItem(`images_${currentUser}`)) || [];
-    imageContainer.innerHTML = '';
-    images.forEach((image) => {
-        const imgElement = document.createElement('img');
-        imgElement.src = image;
-        imageContainer.appendChild(imgElement);
-    });
-
-    // Load audio files from localStorage
-    const audios = JSON.parse(localStorage.getItem(`audios_${currentUser}`)) || [];
-    audioContainer.innerHTML = '';
-    audios.forEach((audio) => {
-        const audioElement = document.createElement('audio');
-        audioElement.src = audio;
-        audioElement.controls = true;
-        audioContainer.appendChild(audioElement);
-    });
-
-    // Load other files from localStorage
-    const files = JSON.parse(localStorage.getItem(`files_${currentUser}`)) || [];
-    fileContainer.innerHTML = '';
-    files.forEach((file) => {
-        const fileElement = document.createElement('a');
-        fileElement.href = file;
-        fileElement.download = file;
-        fileElement.textContent = 'Download File';
-        fileContainer.appendChild(fileElement);
-    });
-}
-
-// Handle media file uploads (Images, Audio, Files)
-function handleMediaUpload(event, type) {
+function importNotes(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        let mediaList = JSON.parse(localStorage.getItem(`${type}_${currentUser}`)) || [];
-
-        if (type === 'image') {
-            mediaList.push(e.target.result);
-            localStorage.setItem(`images_${currentUser}`, JSON.stringify(mediaList));
-        } else if (type === 'audio') {
-            mediaList.push(e.target.result);
-            localStorage.setItem(`audios_${currentUser}`, JSON.stringify(mediaList));
-        } else if (type === 'file') {
-            mediaList.push(e.target.result);
-            localStorage.setItem(`files_${currentUser}`, JSON.stringify(mediaList));
-        }
-
-        loadMedia();
-        showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded!`);
+        const importedNotes = JSON.parse(e.target.result);
+        localStorage.setItem(`notes_${currentUser}`, JSON.stringify(importedNotes));
+        loadNotes();
+        showNotification("Notes imported!");
     };
-
-    if (type === 'image') {
-        reader.readAsDataURL(file); // For image files
-    } else {
-        reader.readAsArrayBuffer(file); // For audio and other files
-    }
+    reader.readAsText(file);
 }
 
-// Initialize the app
-document.addEventListener('DOMContentLoaded', () => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-        currentUser = savedUser;
+// Image Management
+function loadImages() {
+    const imageContainer = document.getElementById('imageContainer');
+    const images = JSON.parse(localStorage.getItem(`images_${currentUser}`)) || [];
+    imageContainer.innerHTML = ''; // Clear previous images
+
+    images.forEach((url) => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.width = '100px';
+        img.style.margin = '5px';
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.appendChild(img);
+
+        imageContainer.appendChild(link);
+    });
+}
+
+function uploadImages() {
+    const imageInput = document.getElementById('uploadImage');
+    const files = Array.from(imageInput.files);
+    if (files.length === 0) {
+        alert("No files selected.");
+        return;
+    }
+
+    const images = JSON.parse(localStorage.getItem(`images_${currentUser}`)) || [];
+    files.forEach((file) => {
+        const imageUrl = URL.createObjectURL(file);
+        images.push(imageUrl);
+        localStorage.setItem(`images_${currentUser}`, JSON.stringify(images));
+    });
+
+    loadImages();
+    showNotification("Images uploaded!");
+}
+
+// Initialize
+window.onload = () => {
+    currentUser = localStorage.getItem('currentUser');
+    if (currentUser) {
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         loadNotes();
-        loadMedia();
+        loadImages();
     } else {
         document.getElementById('loginSection').style.display = 'block';
         document.getElementById('mainApp').style.display = 'none';
     }
-});
-
-// Save account data
-function saveAccount(username) {
-    const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
-    if (!accounts.includes(username)) {
-        accounts.push(username);
-        localStorage.setItem('accounts', JSON.stringify(accounts));
-        loadAccounts();
-    }
-}
-
-function loadAccounts() {
-    const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
-    const accountsList = document.getElementById('accountsList');
-    accountsList.innerHTML = accounts.length
-        ? accounts
-              .map(
-                  (account, index) =>
-                      `<li data-username="${account}" onclick="loginWithAccount('${account}')">
-                          ${account}
-                          <button class="delete-account-btn" onclick="confirmDeleteAccount(${index}); event.stopPropagation();">✗</button>
-                      </li>`
-              )
-              .join('')
-        : '<li>No accounts found.</li>';
-}
-
-function confirmDeleteAccount(index) {
-    if (confirm("Are you sure you want to delete this account?")) {
-        deleteAccount(index);
-    }
-}
-
-function deleteAccount(index) {
-    const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
-    accounts.splice(index, 1);
-    localStorage.setItem('accounts', JSON.stringify(accounts));
     loadAccounts();
-    showNotification("Account deleted!");
-}
-
-// Login with account when username is clicked
-function loginWithAccount(username) {
-    currentUser = username;
-    localStorage.setItem('currentUser', currentUser);
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    loadNotes();
-    loadMedia();
-}
-
-// Handling media uploads
-document.getElementById('uploadImage').addEventListener('change', (e) => handleMediaUpload(e, 'image'));
-document.getElementById('uploadAudio').addEventListener('change', (e) => handleMediaUpload(e, 'audio'));
-document.getElementById('uploadFile').addEventListener('change', (e) => handleMediaUpload(e, 'file'));
+};
