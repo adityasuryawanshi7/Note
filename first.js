@@ -153,28 +153,7 @@ function deleteNotePrompt(index) {
     }
 }
 
-/*Drag-and-Drop Functionality
-function enableDrag(noteEl, index) {
-    noteEl.setAttribute("draggable", true);
-    noteEl.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", index);
-    });
 
-    noteEl.addEventListener("dragover", (e) => e.preventDefault());
-
-    noteEl.addEventListener("drop", (e) => {
-        const draggedIndex = e.dataTransfer.getData("text/plain");
-        reorderNotes(draggedIndex, index);
-    });
-}
-
-function reorderNotes(draggedIndex, targetIndex) {
-    const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
-    const [draggedNote] = notes.splice(draggedIndex, 1);
-    notes.splice(targetIndex, 0, draggedNote);
-    localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
-    loadNotes();
-}*/
 
 // Export and Import Notes
 function exportNotes() {
