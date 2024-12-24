@@ -29,8 +29,8 @@
         <!-- Export/Import Buttons -->
         <div class="export-import-buttons">
             <button onclick="exportNotes()" id="e">Export Notes</button>
-            <input type="file" id="fileInput" onchange="importNotes(event)" style="display:none;">
-            <button onclick="document.getElementById('fileInput').click()" id="i">Import Notes</button>
+            <input type="file" id="fileInputNotes" onchange="importNotes(event)" style="display:none;">
+            <button onclick="document.getElementById('fileInputNotes').click()" id="i">Import Notes</button>
         </div>
 
         <!-- Notification -->
@@ -44,11 +44,31 @@
             <h2>Saved Notes:</h2>
             <div id="notesList"></div>
         </div>
-    </div>
 
+        <!-- Media Manager Section -->
+        <div id="mediaFilesSection">
+            <h2>Upload Media</h2>
+            
+            <!-- Upload Form for Media -->
+            <div class="media-upload-container">
+                <h3>Upload Image</h3>
+                <input type="file" id="uploadImage" accept="image/*">
+                
+                <h3>Upload Audio</h3>
+                <input type="file" id="uploadAudio" accept="audio/*">
+                
+                <h3>Upload File</h3>
+                <input type="file" id="uploadFile">
+            </div>
+
+            <!-- Media Files Display -->
+            <div id="imageContainer" class="image-container"></div>
+            <div id="audioContainer" class="audio-container"></div>
+            <div id="fileContainer" class="file-container"></div>
+        </div>
+    </div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="first.js"></script>
-    
-  
 </body>
 </html>

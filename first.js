@@ -17,11 +17,12 @@ function login() {
     }
 
     currentUser = username;
-    saveAccount(username); // Save the account to the accounts list
-    localStorage.setItem('currentUser', currentUser); // Save the current user
+    saveAccount(username);
+    localStorage.setItem('currentUser', currentUser);
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    loadNotes(); // Load notes for the logged-in user
+    loadNotes();
+    loadMedia();
 }
 
 function logout() {
@@ -30,7 +31,7 @@ function logout() {
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('mainApp').style.display = 'none';
     showNotification("Logged out!");
-    loadAccounts(); // Reload accounts list
+    loadAccounts();
 }
 
 function loadNotes() {
@@ -51,8 +52,6 @@ function loadNotes() {
             </div>`;
         notesList.appendChild(noteEl);
     });
-
-    initializeSortable();
 }
 
 function saveNote() {
@@ -86,70 +85,98 @@ function deleteNote(index) {
     showNotification("Note deleted!");
 }
 
-function exportNotes() {
-    const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
-    const blob = new Blob([JSON.stringify(notes)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${currentUser}_notes.json`;
-    link.click();
-    showNotification("Notes exported!");
-}
+// Load Media for current user
+function loadMedia() {
+    if (!currentUser) return;
 
-function importNotes(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const importedNotes = JSON.parse(e.target.result);
-            localStorage.setItem(`notes_${currentUser}`, JSON.stringify(importedNotes));
-            loadNotes();
-            showNotification("Notes imported!");
-        };
-        reader.readAsText(file);
-    }
-}
+    const imageContainer = document.getElementById('imageContainer');
+    const audioContainer = document.getElementById('audioContainer');
+    const fileContainer = document.getElementById('fileContainer');
 
-function initializeSortable() {
-    const notesList = document.getElementById('notesList');
-    if (notesList.sortableInstance) {
-        notesList.sortableInstance.destroy();
-    }
+    // Load images from localStorage
+    const images = JSON.parse(localStorage.getItem(`images_${currentUser}`)) || [];
+    imageContainer.innerHTML = '';
+    images.forEach((image) => {
+        const imgElement = document.createElement('img');
+        imgElement.src = image;
+        imageContainer.appendChild(imgElement);
+    });
 
-    notesList.sortableInstance = new Sortable(notesList, {
-        handle: '.drag-handle',
-        animation: 150,
-        onEnd: (evt) => {
-            const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
-            const [movedItem] = notes.splice(evt.oldIndex, 1);
-            notes.splice(evt.newIndex, 0, movedItem);
-            localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
-            showNotification("Notes reordered!");
-        }
+    // Load audio files from localStorage
+    const audios = JSON.parse(localStorage.getItem(`audios_${currentUser}`)) || [];
+    audioContainer.innerHTML = '';
+    audios.forEach((audio) => {
+        const audioElement = document.createElement('audio');
+        audioElement.src = audio;
+        audioElement.controls = true;
+        audioContainer.appendChild(audioElement);
+    });
+
+    // Load other files from localStorage
+    const files = JSON.parse(localStorage.getItem(`files_${currentUser}`)) || [];
+    fileContainer.innerHTML = '';
+    files.forEach((file) => {
+        const fileElement = document.createElement('a');
+        fileElement.href = file;
+        fileElement.download = file;
+        fileElement.textContent = 'Download File';
+        fileContainer.appendChild(fileElement);
     });
 }
 
-function checkLoginStatus() {
+// Handle media file uploads (Images, Audio, Files)
+function handleMediaUpload(event, type) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        let mediaList = JSON.parse(localStorage.getItem(`${type}_${currentUser}`)) || [];
+
+        if (type === 'image') {
+            mediaList.push(e.target.result);
+            localStorage.setItem(`images_${currentUser}`, JSON.stringify(mediaList));
+        } else if (type === 'audio') {
+            mediaList.push(e.target.result);
+            localStorage.setItem(`audios_${currentUser}`, JSON.stringify(mediaList));
+        } else if (type === 'file') {
+            mediaList.push(e.target.result);
+            localStorage.setItem(`files_${currentUser}`, JSON.stringify(mediaList));
+        }
+
+        loadMedia();
+        showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded!`);
+    };
+
+    if (type === 'image') {
+        reader.readAsDataURL(file); // For image files
+    } else {
+        reader.readAsArrayBuffer(file); // For audio and other files
+    }
+}
+
+// Initialize the app
+document.addEventListener('DOMContentLoaded', () => {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
         currentUser = savedUser;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         loadNotes();
+        loadMedia();
     } else {
         document.getElementById('loginSection').style.display = 'block';
         document.getElementById('mainApp').style.display = 'none';
-        loadAccounts(); // Load existing accounts on login page
     }
-}
+});
 
-/* Account Management */
+// Save account data
 function saveAccount(username) {
     const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
     if (!accounts.includes(username)) {
         accounts.push(username);
         localStorage.setItem('accounts', JSON.stringify(accounts));
-        loadAccounts(); // Refresh the accounts list on the login page
+        loadAccounts();
     }
 }
 
@@ -160,9 +187,9 @@ function loadAccounts() {
         ? accounts
               .map(
                   (account, index) =>
-                      `<li data-username="${account}">
+                      `<li data-username="${account}" onclick="loginWithAccount('${account}')">
                           ${account}
-                          <button class="delete-account-btn" onclick="confirmDeleteAccount(${index})">✗</button>
+                          <button class="delete-account-btn" onclick="confirmDeleteAccount(${index}); event.stopPropagation();">✗</button>
                       </li>`
               )
               .join('')
@@ -183,22 +210,17 @@ function deleteAccount(index) {
     showNotification("Account deleted!");
 }
 
-// Function to login with a selected account
+// Login with account when username is clicked
 function loginWithAccount(username) {
     currentUser = username;
-    localStorage.setItem('currentUser', currentUser); // Save the current user
+    localStorage.setItem('currentUser', currentUser);
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    loadNotes(); // Load notes for the selected user
+    loadNotes();
+    loadMedia();
 }
 
-// Add click event listeners to accounts
-document.getElementById('accountsList').addEventListener('click', (event) => {
-    const target = event.target.closest('li');
-    if (target && target.dataset.username) {
-        loginWithAccount(target.dataset.username);
-    }
-});
-
-// Initialize app
-document.addEventListener('DOMContentLoaded', checkLoginStatus);
+// Handling media uploads
+document.getElementById('uploadImage').addEventListener('change', (e) => handleMediaUpload(e, 'image'));
+document.getElementById('uploadAudio').addEventListener('change', (e) => handleMediaUpload(e, 'audio'));
+document.getElementById('uploadFile').addEventListener('change', (e) => handleMediaUpload(e, 'file'));
