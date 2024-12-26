@@ -9,7 +9,7 @@
                 document.getElementById("content").style.display = "block"; // Show the content if password is correct
             } else {
                 alert("Incorrect password! You will be redirected.");
-                window.location.href = "https://www.example.com"; // Redirect to another page on incorrect password
+                window.location.href = "https://adityasuryawanshi7.github.io/enotes/"; // Redirect to another page on incorrect password
             }
         }
 
