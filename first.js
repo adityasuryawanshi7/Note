@@ -1,3 +1,12 @@
+if ("Notification" in window) {
+    Notification.requestPermission().then(permission => {
+        if (permission !== "granted") {
+            alert("Enable notifications to use the reminder feature!");
+        }
+    });
+}
+
+
 let currentUser = null;
 
 // Function to display a notification
@@ -17,12 +26,11 @@ function login() {
     }
 
     currentUser = username;
-    saveAccount(username);
-    localStorage.setItem('currentUser', currentUser);
+    saveAccount(username); // Save the account to the accounts list
+    localStorage.setItem('currentUser', currentUser); // Save the current user
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    loadNotes();
-    loadMedia();
+    loadNotes(); // Load notes for the logged-in user
 }
 
 function logout() {
@@ -31,7 +39,7 @@ function logout() {
     document.getElementById('loginSection').style.display = 'block';
     document.getElementById('mainApp').style.display = 'none';
     showNotification("Logged out!");
-    loadAccounts();
+    loadAccounts(); // Reload accounts list
 }
 
 function loadNotes() {
@@ -52,6 +60,8 @@ function loadNotes() {
             </div>`;
         notesList.appendChild(noteEl);
     });
+
+    initializeSortable();
 }
 
 function saveNote() {
@@ -85,98 +95,70 @@ function deleteNote(index) {
     showNotification("Note deleted!");
 }
 
-// Load Media for current user
-function loadMedia() {
-    if (!currentUser) return;
-
-    const imageContainer = document.getElementById('imageContainer');
-    const audioContainer = document.getElementById('audioContainer');
-    const fileContainer = document.getElementById('fileContainer');
-
-    // Load images from localStorage
-    const images = JSON.parse(localStorage.getItem(`images_${currentUser}`)) || [];
-    imageContainer.innerHTML = '';
-    images.forEach((image) => {
-        const imgElement = document.createElement('img');
-        imgElement.src = image;
-        imageContainer.appendChild(imgElement);
-    });
-
-    // Load audio files from localStorage
-    const audios = JSON.parse(localStorage.getItem(`audios_${currentUser}`)) || [];
-    audioContainer.innerHTML = '';
-    audios.forEach((audio) => {
-        const audioElement = document.createElement('audio');
-        audioElement.src = audio;
-        audioElement.controls = true;
-        audioContainer.appendChild(audioElement);
-    });
-
-    // Load other files from localStorage
-    const files = JSON.parse(localStorage.getItem(`files_${currentUser}`)) || [];
-    fileContainer.innerHTML = '';
-    files.forEach((file) => {
-        const fileElement = document.createElement('a');
-        fileElement.href = file;
-        fileElement.download = file;
-        fileElement.textContent = 'Download File';
-        fileContainer.appendChild(fileElement);
-    });
+function exportNotes() {
+    const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
+    const blob = new Blob([JSON.stringify(notes)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${currentUser}_notes.json`;
+    link.click();
+    showNotification("Notes exported!");
 }
 
-// Handle media file uploads (Images, Audio, Files)
-function handleMediaUpload(event, type) {
+function importNotes(event) {
     const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        let mediaList = JSON.parse(localStorage.getItem(`${type}_${currentUser}`)) || [];
-
-        if (type === 'image') {
-            mediaList.push(e.target.result);
-            localStorage.setItem(`images_${currentUser}`, JSON.stringify(mediaList));
-        } else if (type === 'audio') {
-            mediaList.push(e.target.result);
-            localStorage.setItem(`audios_${currentUser}`, JSON.stringify(mediaList));
-        } else if (type === 'file') {
-            mediaList.push(e.target.result);
-            localStorage.setItem(`files_${currentUser}`, JSON.stringify(mediaList));
-        }
-
-        loadMedia();
-        showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded!`);
-    };
-
-    if (type === 'image') {
-        reader.readAsDataURL(file); // For image files
-    } else {
-        reader.readAsArrayBuffer(file); // For audio and other files
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const importedNotes = JSON.parse(e.target.result);
+            localStorage.setItem(`notes_${currentUser}`, JSON.stringify(importedNotes));
+            loadNotes();
+            showNotification("Notes imported!");
+        };
+        reader.readAsText(file);
     }
 }
 
-// Initialize the app
-document.addEventListener('DOMContentLoaded', () => {
+function initializeSortable() {
+    const notesList = document.getElementById('notesList');
+    if (notesList.sortableInstance) {
+        notesList.sortableInstance.destroy();
+    }
+
+    notesList.sortableInstance = new Sortable(notesList, {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: (evt) => {
+            const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
+            const [movedItem] = notes.splice(evt.oldIndex, 1);
+            notes.splice(evt.newIndex, 0, movedItem);
+            localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
+            showNotification("Notes reordered!");
+        }
+    });
+}
+
+function checkLoginStatus() {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
         currentUser = savedUser;
         document.getElementById('loginSection').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         loadNotes();
-        loadMedia();
     } else {
         document.getElementById('loginSection').style.display = 'block';
         document.getElementById('mainApp').style.display = 'none';
+        loadAccounts(); // Load existing accounts on login page
     }
-});
+}
 
-// Save account data
+/* Account Management */
 function saveAccount(username) {
     const accounts = JSON.parse(localStorage.getItem('accounts')) || [];
     if (!accounts.includes(username)) {
         accounts.push(username);
         localStorage.setItem('accounts', JSON.stringify(accounts));
-        loadAccounts();
+        loadAccounts(); // Refresh the accounts list on the login page
     }
 }
 
@@ -187,9 +169,9 @@ function loadAccounts() {
         ? accounts
               .map(
                   (account, index) =>
-                      `<li data-username="${account}" onclick="loginWithAccount('${account}')">
+                      `<li data-username="${account}">
                           ${account}
-                          <button class="delete-account-btn" onclick="confirmDeleteAccount(${index}); event.stopPropagation();">✗</button>
+                          <button class="delete-account-btn" onclick="confirmDeleteAccount(${index})">✗</button>
                       </li>`
               )
               .join('')
@@ -210,17 +192,61 @@ function deleteAccount(index) {
     showNotification("Account deleted!");
 }
 
-// Login with account when username is clicked
+// Function to login with a selected account
 function loginWithAccount(username) {
     currentUser = username;
-    localStorage.setItem('currentUser', currentUser);
+    localStorage.setItem('currentUser', currentUser); // Save the current user
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    loadNotes();
-    loadMedia();
+    loadNotes(); // Load notes for the selected user
 }
 
-// Handling media uploads
-document.getElementById('uploadImage').addEventListener('change', (e) => handleMediaUpload(e, 'image'));
-document.getElementById('uploadAudio').addEventListener('change', (e) => handleMediaUpload(e, 'audio'));
-document.getElementById('uploadFile').addEventListener('change', (e) => handleMediaUpload(e, 'file'));
+// Add click event listeners to accounts
+document.getElementById('accountsList').addEventListener('click', (event) => {
+    const target = event.target.closest('li');
+    if (target && target.dataset.username) {
+        loginWithAccount(target.dataset.username);
+    }
+});
+
+
+function setReminder() {
+    const reminderText = document.getElementById('reminderText').value.trim();
+    const reminderTime = document.getElementById('reminderTime').value;
+
+    if (!reminderText || !reminderTime) {
+        alert('Please provide both reminder text and time.');
+        return;
+    }
+
+    const reminderTimestamp = new Date(reminderTime).getTime();
+    const now = Date.now();
+
+    if (reminderTimestamp <= now) {
+        alert('Please set a future time for the reminder.');
+        return;
+    }
+
+    setTimeout(() => {
+        showNotification(`Reminder: ${reminderText}`);
+    }, reminderTimestamp - now);
+
+    alert('Reminder set successfully!');
+}
+
+// Example function to show a browser notification (if not already present in your code)
+function showNotification(message) {
+    if (Notification.permission === "granted") {
+        new Notification(message);
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                new Notification(message);
+            }
+        });
+    }
+}
+
+
+// Initialize app
+document.addEventListener('DOMContentLoaded', checkLoginStatus);
