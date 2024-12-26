@@ -1,3 +1,22 @@
+  // Define the password
+        const correctPassword = "kajalverma07"; // Change this to your desired password
+
+        // Function to check password
+        function checkPassword() {
+            const enteredPassword = prompt("Please enter the password:");
+
+            if (enteredPassword === correctPassword) {
+                document.getElementById("content").style.display = "block"; // Show the content if password is correct
+            } else {
+                alert("Incorrect password! You will be redirected.");
+                window.location.href = "https://www.example.com"; // Redirect to another page on incorrect password
+            }
+        }
+
+        // Call the function on page load
+        window.onload = checkPassword;
+
+
 let currentUser = null;
 
 // Function to display a notification
@@ -7,6 +26,8 @@ function showNotification(message) {
     notification.style.opacity = 1;
     setTimeout(() => (notification.style.opacity = 0), 1000);
 }
+
+
 
 // Login function
 function login() {
@@ -236,6 +257,11 @@ document.getElementById('accountsList').addEventListener('click', (event) => {
         loginWithAccount(target.dataset.username);
     }
 });
+
+
+
+
+
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', checkLoginStatus);
