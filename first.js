@@ -44,7 +44,7 @@ function loadNotes() {
         const noteEl = document.createElement('div');
         noteEl.className = 'note';
         noteEl.innerHTML = `
-            <span>${note}</span>
+            <span ondblclick="editNote(${index}, this)">${note}</span>
             <div class="action-btn">
                 <button class="delete-btn" onclick="confirmDelete(${index})">✗</button>
                 <button class="drag-handle">☰</button>
@@ -53,6 +53,43 @@ function loadNotes() {
     });
 
     initializeSortable();
+}
+
+function editNote(index, spanElement) {
+    const notes = JSON.parse(localStorage.getItem(`notes_${currentUser}`)) || [];
+    const currentText = notes[index];
+
+    // Replace the span element with an input field
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentText;
+    input.className = 'edit-note-input';
+
+    // Replace the span with the input field
+    spanElement.replaceWith(input);
+
+    // Focus the input field
+    input.focus();
+
+    // Save changes on blur or pressing Enter
+    const saveChanges = () => {
+        const updatedText = input.value.trim();
+        if (updatedText) {
+            notes[index] = updatedText;
+            localStorage.setItem(`notes_${currentUser}`, JSON.stringify(notes));
+            loadNotes();
+            showNotification("Note updated!");
+        } else {
+            alert("Note cannot be empty.");
+        }
+    };
+
+    input.addEventListener('blur', saveChanges);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            saveChanges();
+        }
+    });
 }
 
 function saveNote() {
